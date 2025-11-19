@@ -2,7 +2,14 @@ import { GeneratedCodeResponse } from "../types";
 
 // Updated Configuration for OpenAI-compatible endpoint
 const apiKey = 'sk-ai-v1-aa27ff4f7bc6d11573b41d3d51888aaa1a945a1a154b47699e594e087540c31f';
-const baseUrl = 'https://zenmux.ai/api'; 
+
+// Check if we are in production (running on Vercel)
+// If so, use the relative proxy path to avoid CORS
+// If local, use the direct URL (since we don't have a local proxy set up in vite config yet, 
+// but for local dev usually we can just use the direct URL if the server allows CORS, or set up a vite proxy)
+const isProduction = import.meta.env.PROD;
+const baseUrl = isProduction ? '/api/proxy' : 'https://zenmux.ai/api'; 
+
 const modelId = 'google/gemini-3-pro-preview-free'; 
 
 export const generateFrontendCode = async (
