@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Code Studio",
+  "description": "A Gemini-powered AI Studio that converts natural language prompts into functional frontend code with live preview.",
+  "requestFramePermissions": []
+}
