@@ -11,16 +11,11 @@ export const Navbar: React.FC = () => {
           </svg>
         </div>
         <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-          Gemini Code Studio
-        </span>
-        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] text-slate-400 border border-slate-700">
-          Powered by Gemini 3 Pro
+          Gemini 3 pro
         </span>
       </div>
       
       <div className="flex gap-4">
-        <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Docs</a>
-        <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">API</a>
       </div>
     </nav>
   );

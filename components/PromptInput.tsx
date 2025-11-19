@@ -27,7 +27,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({ onSubmit, isLoading })
       <div className="relative bg-slate-900 rounded-2xl p-1 border border-slate-800 ring-1 ring-white/10">
         <textarea
           className="w-full bg-transparent border-none text-slate-200 text-lg p-4 resize-none focus:ring-0 placeholder:text-slate-500 h-24 min-h-[6rem] disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder={isLoading ? "Gemini is building your app..." : "Describe the app or component you want to build..."}
+          placeholder={isLoading ? "Gemini is building your app..." : "Create a web-based Snake game."}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
