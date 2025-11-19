@@ -64,8 +64,8 @@ export const generateFrontendCode = async (
       body: JSON.stringify({
         model: modelId,
         messages: messages,
-        stream: true, // Enable streaming
-        response_format: { type: "json_object" } // Force JSON mode if supported
+        stream: false, // Disable streaming for stability
+        response_format: { type: "json_object" }
       })
     });
 
@@ -75,40 +75,12 @@ export const generateFrontendCode = async (
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
-    if (!response.body) {
-      throw new Error("No response body received");
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let fullText = "";
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || ""; // Keep incomplete line in buffer
-
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (trimmedLine.startsWith('data: ') && trimmedLine !== 'data: [DONE]') {
-          try {
-            const json = JSON.parse(trimmedLine.slice(6));
-            const content = json.choices[0]?.delta?.content || "";
-            if (content) {
-              fullText += content;
-              if (onChunk) {
-                onChunk(fullText);
-              }
-            }
-          } catch (e) {
-            console.warn("Error parsing stream chunk:", e);
-          }
-        }
-      }
+    const data = await response.json();
+    const fullText = data.choices[0]?.message?.content || "";
+    
+    // Simulate streaming for UI feedback if needed, or just call onChunk once
+    if (onChunk) {
+      onChunk(fullText);
     }
 
     // Final cleanup and parsing
