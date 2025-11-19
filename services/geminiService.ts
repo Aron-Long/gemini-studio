@@ -35,7 +35,7 @@ export const generateFrontendCode = async (
 ): Promise<GeneratedCodeResponse> => {
   try {
     // Using the model ID provided by the user
-    const modelId = "google/gemini-3-pro-preview-free"; 
+    const modelId = "gemini-3-pro-preview-free"; 
 
     const systemInstruction = `
       You are an expert Senior Frontend Engineer and UI/UX Designer specializing in Tailwind CSS and modern web design.
