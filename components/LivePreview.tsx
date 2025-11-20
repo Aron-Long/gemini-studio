@@ -6,8 +6,10 @@ interface LivePreviewProps {
 
 export const LivePreview: React.FC<LivePreviewProps> = ({ code }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   // Use a key to force re-mounting of the iframe on refresh
   const [key, setKey] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleRefresh = () => {
     setKey(prev => prev + 1);
@@ -25,20 +27,89 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ code }) => {
     }
   };
 
+  // Handle fullscreen toggle
+  const handleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!isFullscreen) {
+        // Enter fullscreen
+        if (containerRef.current.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        } else if ((containerRef.current as any).webkitRequestFullscreen) {
+          await (containerRef.current as any).webkitRequestFullscreen();
+        } else if ((containerRef.current as any).mozRequestFullScreen) {
+          await (containerRef.current as any).mozRequestFullScreen();
+        } else if ((containerRef.current as any).msRequestFullscreen) {
+          await (containerRef.current as any).msRequestFullscreen();
+        }
+      } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        } else if ((document as any).mozCancelFullScreen) {
+          await (document as any).mozCancelFullScreen();
+        } else if ((document as any).msExitFullscreen) {
+          await (document as any).msExitFullscreen();
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling fullscreen:', error);
+    }
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
   return (
     <div 
+      ref={containerRef}
       className="w-full h-full bg-slate-900 rounded-lg overflow-hidden border border-slate-700 flex flex-col shadow-2xl"
       onClick={focusIframe}
       onMouseEnter={focusIframe}
     >
       {/* Browser Toolbar */}
       <div className="h-12 bg-slate-800 border-b border-slate-700 flex items-center px-4 space-x-4 select-none">
-        {/* Window Controls (Mac style) */}
-        <div className="flex space-x-2 group">
-          <div className="w-3 h-3 rounded-full bg-red-500/80 group-hover:bg-red-500 transition-colors" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500/80 group-hover:bg-yellow-500 transition-colors" />
-          <div className="w-3 h-3 rounded-full bg-green-500/80 group-hover:bg-green-500 transition-colors" />
-        </div>
+        {/* Fullscreen Button */}
+        <button
+          onClick={handleFullscreen}
+          className="p-1.5 hover:bg-slate-700 rounded-full hover:text-white transition-colors text-slate-400"
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        >
+          {isFullscreen ? (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path d="M4 2a2 2 0 00-2 2v2h2V4h2V2H4zM14 2v2h2v2h2V4a2 2 0 00-2-2h-2zM16 14v-2h2v2a2 2 0 01-2 2h-2v-2h2zM6 18H4a2 2 0 01-2-2v-2h2v2h2v2z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path d="M3 3a1 1 0 000 2v8a2 2 0 002 2h8a1 1 0 100-2H5V5a1 1 0 00-1-1zm12 0a1 1 0 011 1v8a1 1 0 01-1 1h-1a1 1 0 110-2h1V5h-1a1 1 0 01-1-1zm-1 4a1 1 0 011 1v6a2 2 0 01-2 2H6a1 1 0 110-2h6V8a1 1 0 011-1z" />
+            </svg>
+          )}
+        </button>
 
         {/* Navigation Controls */}
         <div className="flex items-center space-x-3 text-slate-400">

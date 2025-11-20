@@ -67,7 +67,7 @@ export const generateFrontendCode = async (
     }
 
     // Log for debugging (will show in browser console)
-    console.log(`[GeminiService] Sending request to ${baseUrl}/v1/chat/completions...`);
+    console.log(`[GeminiService] Sending streaming request to ${baseUrl}/v1/chat/completions...`);
 
     const response = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: "POST",
@@ -78,7 +78,7 @@ export const generateFrontendCode = async (
       body: JSON.stringify({
         model: modelId,
         messages: messages,
-        stream: false, // Disable streaming for stability
+        stream: true, // Enable streaming for real-time code display
         response_format: { type: "json_object" }
       })
     });
@@ -95,27 +95,77 @@ export const generateFrontendCode = async (
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    console.log("[GeminiService] Response received:", data);
+    // Handle streaming response
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullContent = '';
 
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-       console.error("[GeminiService] Unexpected response structure:", data);
-       throw new Error("Invalid response format from API.");
+    if (!reader) {
+      throw new Error("Response body is not readable");
     }
 
-    const fullText = data.choices[0].message.content || "";
-    
-    if (!fullText) {
-        throw new Error("Model returned empty content.");
+    // Stream the response
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') {
+            continue;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content || '';
+            
+            if (delta) {
+              fullContent += delta;
+              // Call onChunk callback for each chunk to enable real-time display
+              if (onChunk) {
+                onChunk(fullContent);
+              }
+            }
+          } catch (e) {
+            // Skip invalid JSON lines
+            console.warn('[GeminiService] Failed to parse SSE line:', line);
+          }
+        }
+      }
     }
-    
-    // Simulate streaming for UI feedback if needed, or just call onChunk once
-    if (onChunk) {
-      onChunk(fullText);
+
+    // Process any remaining buffer
+    if (buffer.trim()) {
+      const line = buffer.trim();
+      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+        try {
+          const parsed = JSON.parse(line.slice(6));
+          const delta = parsed.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            fullContent += delta;
+            if (onChunk) {
+              onChunk(fullContent);
+            }
+          }
+        } catch (e) {
+          console.warn('[GeminiService] Failed to parse final buffer:', line);
+        }
+      }
+    }
+
+    if (!fullContent) {
+      throw new Error("Model returned empty content.");
     }
 
     // Final cleanup and parsing
-    let jsonString = fullText.trim();
+    let jsonString = fullContent.trim();
     // Remove markdown blocks if they still appear despite instructions
     jsonString = jsonString.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
     
@@ -124,20 +174,20 @@ export const generateFrontendCode = async (
       return parsed;
     } catch (parseError) {
       console.error("JSON Parse Error:", parseError);
-      console.log("Raw Text:", fullText);
+      console.log("Raw Text:", fullContent);
       
       // Fallback: try to construct a valid response if parsing fails but we have text
       // Sometimes the model might return just the HTML code if it ignored the JSON instruction
-      if (fullText.trim().startsWith("<html") || fullText.trim().startsWith("<!DOCTYPE")) {
+      if (fullContent.trim().startsWith("<html") || fullContent.trim().startsWith("<!DOCTYPE")) {
          return {
-            code: fullText,
+            code: fullContent,
             explanation: "Generated code (raw output)",
             language: "html"
          };
       }
 
       return {
-        code: fullText,
+        code: fullContent,
         explanation: "Generated code (parsing failed)",
         language: "html"
       };

@@ -64,10 +64,25 @@ const App: React.FC = () => {
   };
 
   // Determine content to show
-  // If streaming, show the raw stream. If finished, show the parsed code. If neither, placeholder.
-  const displayCode = streamingContent !== null 
-    ? streamingContent 
-    : (generatedData ? generatedData.code : PLACEHOLDER_CODE);
+  // If streaming, try to parse JSON and extract code, otherwise show raw stream
+  // If finished, show the parsed code. If neither, placeholder.
+  const displayCode = (() => {
+    if (streamingContent !== null) {
+      // Try to parse the streaming JSON to extract code for better UX
+      try {
+        const cleaned = streamingContent.trim().replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
+        const parsed = JSON.parse(cleaned);
+        if (parsed.code) {
+          return parsed.code;
+        }
+      } catch (e) {
+        // If parsing fails (incomplete JSON), show raw content
+        // This happens during streaming when JSON is not yet complete
+      }
+      return streamingContent;
+    }
+    return generatedData ? generatedData.code : PLACEHOLDER_CODE;
+  })();
 
   const explanation = generatedData ? generatedData.explanation : "Waiting for your prompt...";
 
