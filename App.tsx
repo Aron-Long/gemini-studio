@@ -66,19 +66,22 @@ const App: React.FC = () => {
   };
 
   // Determine content to show
-  // During streaming, show the raw content directly (even if it's incomplete JSON)
+  // During streaming, show the streaming content (even if empty, to clear the previous code)
   // After completion, show the parsed code from generatedData
   const displayCode = (() => {
-    // If currently streaming, show the streaming content directly
-    if (isLoading && streamingContent !== null && streamingContent !== '') {
-      console.log('[App] Displaying streaming content, length:', streamingContent.length);
-      return streamingContent;
+    // If currently loading/generating, show streaming content (even if empty to clear previous code)
+    if (isLoading) {
+      // Show streaming content if available, otherwise show empty string to clear previous code
+      const content = streamingContent !== null ? streamingContent : '';
+      console.log('[App] Displaying streaming content, length:', content.length);
+      return content;
     }
     // If finished, show the parsed code
     if (generatedData) {
       console.log('[App] Displaying generated code, length:', generatedData.code.length);
       return generatedData.code;
     }
+    // Only show placeholder when not loading and no generated data
     return PLACEHOLDER_CODE;
   })();
 
