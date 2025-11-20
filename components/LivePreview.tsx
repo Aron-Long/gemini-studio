@@ -94,35 +94,41 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ code }) => {
     >
       {/* Browser Toolbar */}
       <div className="h-12 bg-slate-800 border-b border-slate-700 flex items-center px-4 space-x-4 select-none">
-        {/* Fullscreen Button */}
+        {/* Fullscreen Button - 放大用第一张图UI, 缩小用第二张图UI */}
         <button
           onClick={handleFullscreen}
-          className="p-1.5 hover:bg-slate-700 rounded-full hover:text-white transition-colors text-slate-400"
+          className="p-1.5 hover:bg-slate-700 rounded-lg hover:text-white transition-colors text-slate-400"
           title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
         >
           {isFullscreen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-              <path d="M4 2a2 2 0 00-2 2v2h2V4h2V2H4zM14 2v2h2v2h2V4a2 2 0 00-2-2h-2zM16 14v-2h2v2a2 2 0 01-2 2h-2v-2h2zM6 18H4a2 2 0 01-2-2v-2h2v2h2v2z" />
+            // 第二张图UI: 四个向内指向的L形图标 (缩小/退出全屏)
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              {/* 左上角 L */}
+              <path d="M3 3h4M3 3v4" />
+              {/* 右上角 L */}
+              <path d="M17 3h-4M17 3v4" />
+              {/* 左下角 L */}
+              <path d="M3 17h4M3 17v-4" />
+              {/* 右下角 L */}
+              <path d="M17 17h-4M17 17v-4" />
             </svg>
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-              <path d="M3 3a1 1 0 000 2v8a2 2 0 002 2h8a1 1 0 100-2H5V5a1 1 0 00-1-1zm12 0a1 1 0 011 1v8a1 1 0 01-1 1h-1a1 1 0 110-2h1V5h-1a1 1 0 01-1-1zm-1 4a1 1 0 011 1v6a2 2 0 01-2 2H6a1 1 0 110-2h6V8a1 1 0 011-1z" />
+            // 第一张图UI: 四个向外指向的L形图标 (放大/全屏)
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              {/* 左上角 L - 向外 */}
+              <path d="M7 3H3M3 3v4" />
+              {/* 右上角 L - 向外 */}
+              <path d="M13 3h4M17 3v4" />
+              {/* 左下角 L - 向外 */}
+              <path d="M7 17H3M3 17v-4" />
+              {/* 右下角 L - 向外 */}
+              <path d="M13 17h4M17 17v-4" />
             </svg>
           )}
         </button>
 
-        {/* Navigation Controls */}
+        {/* Navigation Controls - 移除左右箭头，只保留刷新按钮 */}
         <div className="flex items-center space-x-3 text-slate-400">
-           <button className="p-1.5 hover:bg-slate-700 rounded-full hover:text-white transition-colors disabled:opacity-50">
-             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-               <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
-             </svg>
-           </button>
-           <button className="p-1.5 hover:bg-slate-700 rounded-full hover:text-white transition-colors disabled:opacity-50">
-             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-               <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-             </svg>
-           </button>
            <button 
              onClick={handleRefresh} 
              className="p-1.5 hover:bg-slate-700 rounded-full hover:text-white transition-colors" 
