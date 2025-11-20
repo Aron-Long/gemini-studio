@@ -39,6 +39,7 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setStreamingContent('');
+    setGeneratedData(null);
     
     // 1. Automatically jump to Code view to show the "Thinking/Writing" process
     setViewMode(ViewMode.CODE);
@@ -46,6 +47,7 @@ const App: React.FC = () => {
     try {
       // 2. Call service with a callback for streaming chunks
       const result = await generateFrontendCode(prompt, (chunkText) => {
+        console.log('[App] Received chunk, length:', chunkText.length, 'preview:', chunkText.substring(0, 100));
         setStreamingContent(chunkText);
       });
       
@@ -64,24 +66,20 @@ const App: React.FC = () => {
   };
 
   // Determine content to show
-  // If streaming, try to parse JSON and extract code, otherwise show raw stream
-  // If finished, show the parsed code. If neither, placeholder.
+  // During streaming, show the raw content directly (even if it's incomplete JSON)
+  // After completion, show the parsed code from generatedData
   const displayCode = (() => {
-    if (streamingContent !== null) {
-      // Try to parse the streaming JSON to extract code for better UX
-      try {
-        const cleaned = streamingContent.trim().replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
-        const parsed = JSON.parse(cleaned);
-        if (parsed.code) {
-          return parsed.code;
-        }
-      } catch (e) {
-        // If parsing fails (incomplete JSON), show raw content
-        // This happens during streaming when JSON is not yet complete
-      }
+    // If currently streaming, show the streaming content directly
+    if (isLoading && streamingContent !== null && streamingContent !== '') {
+      console.log('[App] Displaying streaming content, length:', streamingContent.length);
       return streamingContent;
     }
-    return generatedData ? generatedData.code : PLACEHOLDER_CODE;
+    // If finished, show the parsed code
+    if (generatedData) {
+      console.log('[App] Displaying generated code, length:', generatedData.code.length);
+      return generatedData.code;
+    }
+    return PLACEHOLDER_CODE;
   })();
 
   const explanation = generatedData ? generatedData.explanation : "Waiting for your prompt...";

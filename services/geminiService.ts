@@ -116,9 +116,13 @@ export const generateFrontendCode = async (
       buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
       for (const line of lines) {
+        // Skip empty lines
+        if (!line.trim()) continue;
+        
         if (line.startsWith('data: ')) {
-          const data = line.slice(6);
+          const data = line.slice(6).trim();
           if (data === '[DONE]') {
+            console.log('[GeminiService] Stream completed');
             continue;
           }
 
@@ -134,9 +138,12 @@ export const generateFrontendCode = async (
               }
             }
           } catch (e) {
-            // Skip invalid JSON lines
-            console.warn('[GeminiService] Failed to parse SSE line:', line);
+            // Log parsing errors for debugging
+            console.warn('[GeminiService] Failed to parse SSE line:', line, e);
           }
+        } else if (line.trim()) {
+          // Log non-data lines for debugging
+          console.log('[GeminiService] Non-data line:', line);
         }
       }
     }
@@ -144,22 +151,27 @@ export const generateFrontendCode = async (
     // Process any remaining buffer
     if (buffer.trim()) {
       const line = buffer.trim();
-      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-        try {
-          const parsed = JSON.parse(line.slice(6));
-          const delta = parsed.choices?.[0]?.delta?.content || '';
-          if (delta) {
-            fullContent += delta;
-            if (onChunk) {
-              onChunk(fullContent);
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim();
+        if (data !== '[DONE]') {
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content || '';
+            if (delta) {
+              fullContent += delta;
+              if (onChunk) {
+                onChunk(fullContent);
+              }
             }
+          } catch (e) {
+            console.warn('[GeminiService] Failed to parse final buffer:', line, e);
           }
-        } catch (e) {
-          console.warn('[GeminiService] Failed to parse final buffer:', line);
         }
       }
     }
 
+    console.log('[GeminiService] Stream completed. Total length:', fullContent.length);
+    
     if (!fullContent) {
       throw new Error("Model returned empty content.");
     }
