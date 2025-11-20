@@ -1,16 +1,19 @@
 import { GeneratedCodeResponse } from "../types";
 
-// Updated Configuration for OpenAI-compatible endpoint
-const apiKey = 'sk-ai-v1-aa27ff4f7bc6d11573b41d3d51888aaa1a945a1a154b47699e594e087540c31f';
+// Mulerun API Configuration
+// API key should be set in Vercel environment variables as VITE_MULERUN_API_KEY
+// Note: In Vite, only environment variables prefixed with VITE_ are exposed to client code
+const apiKey = import.meta.env.VITE_MULERUN_API_KEY;
 
-// Check if we are in production (running on Vercel)
-// If so, use the relative proxy path to avoid CORS
-// If local, use the direct URL (since we don't have a local proxy set up in vite config yet, 
-// but for local dev usually we can just use the direct URL if the server allows CORS, or set up a vite proxy)
-const isProduction = import.meta.env.PROD;
-const baseUrl = isProduction ? '/api/proxy' : 'https://zenmux.ai/api'; 
+if (!apiKey) {
+  console.warn('[GeminiService] VITE_MULERUN_API_KEY not found in environment variables');
+}
 
-const modelId = 'google/gemini-3-pro-preview-free'; 
+// Mulerun API endpoint
+const baseUrl = 'https://api.mulerun.com';
+
+// Gemini 3 Pro model ID
+const modelId = 'gemini-3-pro-preview'; 
 
 export const generateFrontendCode = async (
   prompt: string, 
@@ -55,6 +58,17 @@ export const generateFrontendCode = async (
       { role: "user", content: prompt }
     ];
 
+    // For non-streaming requests, we should increase timeout or handle long polling if needed, 
+    // but standard fetch awaits response.
+    
+    // Validate API key
+    if (!apiKey) {
+      throw new Error('VITE_MULERUN_API_KEY is not configured. Please set it in Vercel environment variables.');
+    }
+
+    // Log for debugging (will show in browser console)
+    console.log(`[GeminiService] Sending request to ${baseUrl}/v1/chat/completions...`);
+
     const response = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: {
@@ -71,12 +85,29 @@ export const generateFrontendCode = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("API Error Body:", errorText);
+      console.error("[GeminiService] API Error Body:", errorText);
+      
+      // Handle specific Vercel timeout (504 Gateway Timeout)
+      if (response.status === 504) {
+        throw new Error("The request timed out. Generating complex code might take longer than Vercel's limit (10s-60s). Try a simpler prompt or try again.");
+      }
+      
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    const fullText = data.choices[0]?.message?.content || "";
+    console.log("[GeminiService] Response received:", data);
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+       console.error("[GeminiService] Unexpected response structure:", data);
+       throw new Error("Invalid response format from API.");
+    }
+
+    const fullText = data.choices[0].message.content || "";
+    
+    if (!fullText) {
+        throw new Error("Model returned empty content.");
+    }
     
     // Simulate streaming for UI feedback if needed, or just call onChunk once
     if (onChunk) {
@@ -88,15 +119,23 @@ export const generateFrontendCode = async (
     // Remove markdown blocks if they still appear despite instructions
     jsonString = jsonString.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
     
-    // If the model returns just the code or incomplete JSON, we might need fallback logic,
-    // but for now we assume it follows the system prompt's JSON requirement.
     try {
       const parsed: GeneratedCodeResponse = JSON.parse(jsonString);
       return parsed;
     } catch (parseError) {
       console.error("JSON Parse Error:", parseError);
       console.log("Raw Text:", fullText);
+      
       // Fallback: try to construct a valid response if parsing fails but we have text
+      // Sometimes the model might return just the HTML code if it ignored the JSON instruction
+      if (fullText.trim().startsWith("<html") || fullText.trim().startsWith("<!DOCTYPE")) {
+         return {
+            code: fullText,
+            explanation: "Generated code (raw output)",
+            language: "html"
+         };
+      }
+
       return {
         code: fullText,
         explanation: "Generated code (parsing failed)",

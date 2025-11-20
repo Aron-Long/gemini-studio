@@ -15,6 +15,8 @@ View your app in AI Studio: https://ai.studio/apps/drive/1XO6e8gLSeXvB1xcSa1pYI_
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Set the `VITE_MULERUN_API_KEY` in [.env.local](.env.local) to your Mulerun API key
+   - For local development: Create a `.env.local` file with `VITE_MULERUN_API_KEY=your_api_key_here`
+   - For Vercel deployment: Set `VITE_MULERUN_API_KEY` in Vercel project settings > Environment Variables
 3. Run the app:
    `npm run dev`
