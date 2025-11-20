@@ -1,12 +1,57 @@
-import React, { useState, KeyboardEvent } from 'react';
+import React, { useState, KeyboardEvent, useEffect, useRef } from 'react';
 
 interface PromptInputProps {
   onSubmit: (prompt: string) => void;
   isLoading: boolean;
 }
 
+const DEFAULT_TEXT = 'Create a web-based snake game';
+const TYPING_SPEED = 50; // milliseconds per character
+
 export const PromptInput: React.FC<PromptInputProps> = ({ onSubmit, isLoading }) => {
   const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
+  const [displayedText, setDisplayedText] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const hasTypedRef = useRef(false);
+
+  // Typing effect on mount
+  useEffect(() => {
+    if (!hasTypedRef.current && !isLoading) {
+      hasTypedRef.current = true;
+      let currentIndex = 0;
+      
+      const typingInterval = setInterval(() => {
+        if (currentIndex < DEFAULT_TEXT.length) {
+          setDisplayedText(DEFAULT_TEXT.slice(0, currentIndex + 1));
+          currentIndex++;
+        } else {
+          clearInterval(typingInterval);
+          setIsTyping(false);
+          setInput(DEFAULT_TEXT);
+          // Focus the textarea after typing completes
+          setTimeout(() => {
+            if (inputRef.current) {
+              inputRef.current.focus();
+              // Move cursor to end
+              inputRef.current.setSelectionRange(DEFAULT_TEXT.length, DEFAULT_TEXT.length);
+            }
+          }, 100);
+        }
+      }, TYPING_SPEED);
+
+      return () => clearInterval(typingInterval);
+    }
+  }, [isLoading]);
+
+  // Reset typing effect when loading completes
+  useEffect(() => {
+    if (!isLoading && input === '') {
+      hasTypedRef.current = false;
+      setIsTyping(true);
+      setDisplayedText('');
+    }
+  }, [isLoading, input]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -16,9 +61,22 @@ export const PromptInput: React.FC<PromptInputProps> = ({ onSubmit, isLoading })
   };
 
   const handleSubmit = () => {
-    if (input.trim() && !isLoading) {
-      onSubmit(input.trim());
+    const textToSubmit = input.trim() || displayedText.trim();
+    if (textToSubmit && !isLoading) {
+      onSubmit(textToSubmit);
+      // Clear input after submission
+      setInput('');
+      setDisplayedText('');
+      hasTypedRef.current = false;
+      setIsTyping(true);
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setInput(value);
+    setDisplayedText(value);
+    setIsTyping(false);
   };
 
   return (
@@ -26,30 +84,23 @@ export const PromptInput: React.FC<PromptInputProps> = ({ onSubmit, isLoading })
       <div className={`absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur transition duration-1000 ${isLoading ? 'opacity-10' : 'opacity-25 group-hover:opacity-50'}`}></div>
       <div className="relative bg-slate-900 rounded-2xl p-1 border border-slate-800 ring-1 ring-white/10">
         <textarea
+          ref={inputRef}
           className="w-full bg-transparent border-none text-slate-200 text-lg p-4 resize-none focus:ring-0 placeholder:text-slate-500 h-24 min-h-[6rem] disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder={isLoading ? "Gemini is building your app..." : "Create a web-based Snake game."}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+          placeholder={isLoading ? "Gemini is building your app..." : ""}
+          value={isTyping ? displayedText : input}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           disabled={isLoading}
         />
         
-        <div className="flex justify-between items-center px-2 pb-2">
-          <div className="flex gap-2">
-             <button disabled={isLoading} className="p-2 rounded-full hover:bg-slate-800 text-slate-400 transition-colors disabled:opacity-0" title="Add Image (Mock)">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                </svg>
-             </button>
-          </div>
-
+        <div className="flex justify-end items-center px-2 pb-2">
           <button
             onClick={handleSubmit}
-            disabled={!input.trim() || isLoading}
+            disabled={(!input.trim() && !displayedText.trim()) || isLoading}
             className={`
               flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-300
-              ${input.trim() && !isLoading 
-                ? 'bg-slate-100 text-slate-900 hover:bg-white shadow-[0_0_20px_rgba(255,255,255,0.3)]' 
+              ${(input.trim() || displayedText.trim()) && !isLoading 
+                ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)]' 
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'}
             `}
           >

@@ -128,7 +128,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ code }) => {
         </button>
 
         {/* Navigation Controls - 移除左右箭头，只保留刷新按钮 */}
-        <div className="flex items-center space-x-3 text-slate-400">
+        <div className="flex items-center space-x-3 text-slate-400 ml-auto">
            <button 
              onClick={handleRefresh} 
              className="p-1.5 hover:bg-slate-700 rounded-full hover:text-white transition-colors" 
@@ -138,23 +138,6 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ code }) => {
                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.02-1.06l-.31-.31a7 7 0 00-11.712 3.138.75.75 0 001.449.39 5.5 5.5 0 019.201-2.466l.312.311h-2.433a.75.75 0 000 1.5h4.243a.75.75 0 00.75-.75V5.758a.75.75 0 00-1.5 0v2.43l-.31.31z" clipRule="evenodd" />
              </svg>
            </button>
-        </div>
-
-        {/* Address Bar */}
-        <div className="flex-1 bg-slate-900 h-8 rounded-full border border-slate-600 hover:border-slate-500 transition-colors flex items-center px-4 text-xs text-slate-400 font-mono overflow-hidden">
-           <span className="text-green-500 mr-2">
-             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
-               <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
-             </svg>
-           </span>
-           <span>localhost:3000/preview/app.html</span>
-        </div>
-
-        {/* Extra Menu Icon */}
-        <div className="text-slate-400">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-            <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM11.5 15.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
-          </svg>
         </div>
       </div>
 
