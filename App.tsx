@@ -40,7 +40,7 @@ const App: React.FC = () => {
     setError(null);
     setStreamingContent('');
     setGeneratedData(null);
-    
+
     // 1. Automatically jump to Code view to show the "Thinking/Writing" process
     setViewMode(ViewMode.CODE);
 
@@ -50,9 +50,9 @@ const App: React.FC = () => {
         console.log('[App] Received chunk, length:', chunkText.length, 'preview:', chunkText.substring(0, 100));
         setStreamingContent(chunkText);
       });
-      
+
       setGeneratedData(result);
-      
+
       // 3. Once finished, automatically switch to Preview to run the code
       setViewMode(ViewMode.PREVIEW);
     } catch (err) {
@@ -70,9 +70,14 @@ const App: React.FC = () => {
   // After completion, show the parsed code from generatedData
   const displayCode = (() => {
     // If currently streaming, show the streaming content directly
-    if (isLoading && streamingContent !== null && streamingContent !== '') {
-      console.log('[App] Displaying streaming content, length:', streamingContent.length);
-      return streamingContent;
+    if (isLoading) {
+      const content = streamingContent || '';
+      // Hide the explanation part during streaming if it starts appearing
+      const separator = "<!-- GEMINI_EXPLANATION_SEPARATOR -->";
+      if (content.includes(separator)) {
+        return content.split(separator)[0];
+      }
+      return content;
     }
     // If finished, show the parsed code
     if (generatedData) {
@@ -87,99 +92,99 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
       <Navbar />
-      
+
       <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* Background Ambient Effects */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-600/10 blur-[100px] rounded-full pointer-events-none z-0" />
-        
+
         {/* Content Container */}
         <div className="flex-1 flex flex-col z-10 p-6 gap-6 max-w-[1600px] mx-auto w-full h-[calc(100vh-4rem)]">
-          
+
           {/* Top: Input Section */}
           <div className="flex-none">
-             <div className="flex flex-col items-center justify-center mb-6 text-center">
-                {!generatedData && !isLoading && (
-                  <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-                    What do you want to build?
-                  </h1>
-                )}
-             </div>
-             <PromptInput onSubmit={handleGenerate} isLoading={isLoading} />
-             
-             {error && (
-                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm text-center max-w-3xl mx-auto">
-                  {error}
-                </div>
-             )}
+            <div className="flex flex-col items-center justify-center mb-6 text-center">
+              {!generatedData && !isLoading && (
+                <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+                  What do you want to build?
+                </h1>
+              )}
+            </div>
+            <PromptInput onSubmit={handleGenerate} isLoading={isLoading} />
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm text-center max-w-3xl mx-auto">
+                {error}
+              </div>
+            )}
           </div>
 
           {/* Bottom: Workspace Section */}
           <div className="flex-1 min-h-0 flex gap-4">
             {/* Left Panel: Explanation & Logic (Only visible when finished generation or split view) */}
             {generatedData && !isLoading && viewMode === ViewMode.SPLIT && (
-               <div className="w-1/4 hidden lg:flex flex-col gap-4 animate-fade-in">
-                  <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 h-full overflow-y-auto custom-scrollbar">
-                    <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Gemini Insights</h3>
-                    <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-wrap">
-                      {explanation}
-                    </p>
-                  </div>
-               </div>
+              <div className="w-1/4 hidden lg:flex flex-col gap-4 animate-fade-in">
+                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 h-full overflow-y-auto custom-scrollbar">
+                  <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Gemini Insights</h3>
+                  <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-wrap">
+                    {explanation}
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* Right Panel: Output Area */}
             <div className={`flex-1 flex flex-col bg-slate-900/30 border border-slate-800 rounded-xl overflow-hidden shadow-2xl transition-all duration-500`}>
               {/* Toolbar */}
               <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-800">
-                 <div className="flex space-x-1 bg-slate-800 p-1 rounded-lg">
-                    <button 
-                      onClick={() => setViewMode(ViewMode.PREVIEW)}
-                      disabled={isLoading}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === ViewMode.PREVIEW ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 disabled:opacity-50'}`}
-                    >
-                      Preview
-                    </button>
-                    <button 
-                      onClick={() => setViewMode(ViewMode.CODE)}
-                      disabled={isLoading}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === ViewMode.CODE ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 disabled:opacity-50'}`}
-                    >
-                      Code
-                    </button>
-                    <button 
-                      onClick={() => setViewMode(ViewMode.SPLIT)}
-                      disabled={isLoading}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === ViewMode.SPLIT ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 disabled:opacity-50'} hidden md:block`}
-                    >
-                      Split
-                    </button>
-                 </div>
-                 <div className="flex items-center gap-2 text-xs text-slate-500">
-                    {isLoading && (
-                      <span className="flex items-center gap-1 text-blue-400 animate-pulse">
-                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        Generating...
-                      </span>
-                    )}
-                    <span>Gemini 3 Pro</span>
-                 </div>
+                <div className="flex space-x-1 bg-slate-800 p-1 rounded-lg">
+                  <button
+                    onClick={() => setViewMode(ViewMode.PREVIEW)}
+                    disabled={isLoading}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === ViewMode.PREVIEW ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 disabled:opacity-50'}`}
+                  >
+                    Preview
+                  </button>
+                  <button
+                    onClick={() => setViewMode(ViewMode.CODE)}
+                    disabled={isLoading}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === ViewMode.CODE ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 disabled:opacity-50'}`}
+                  >
+                    Code
+                  </button>
+                  <button
+                    onClick={() => setViewMode(ViewMode.SPLIT)}
+                    disabled={isLoading}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === ViewMode.SPLIT ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 disabled:opacity-50'} hidden md:block`}
+                  >
+                    Split
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  {isLoading && (
+                    <span className="flex items-center gap-1 text-blue-400 animate-pulse">
+                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      Generating...
+                    </span>
+                  )}
+                  <span>Gemini 3 Pro</span>
+                </div>
               </div>
 
               {/* Content Area */}
               <div className="flex-1 relative flex overflow-hidden">
-                 {/* Preview Mode */}
-                 {(viewMode === ViewMode.PREVIEW || viewMode === ViewMode.SPLIT) && !isLoading && (
-                   <div className={`flex-1 relative ${viewMode === ViewMode.SPLIT ? 'w-1/2 border-r border-slate-800' : 'w-full'}`}>
-                      <LivePreview code={displayCode} />
-                   </div>
-                 )}
-                 
-                 {/* Code Mode */}
-                 {(viewMode === ViewMode.CODE || viewMode === ViewMode.SPLIT || isLoading) && (
-                   <div className={`flex-1 relative flex flex-col min-h-0 bg-slate-950 ${viewMode === ViewMode.SPLIT && !isLoading ? 'w-1/2' : 'w-full'}`}>
-                      <CodeViewer code={displayCode} isStreaming={isLoading} />
-                   </div>
-                 )}
+                {/* Preview Mode */}
+                {(viewMode === ViewMode.PREVIEW || viewMode === ViewMode.SPLIT) && !isLoading && (
+                  <div className={`flex-1 relative ${viewMode === ViewMode.SPLIT ? 'w-1/2 border-r border-slate-800' : 'w-full'}`}>
+                    <LivePreview code={displayCode} />
+                  </div>
+                )}
+
+                {/* Code Mode */}
+                {(viewMode === ViewMode.CODE || viewMode === ViewMode.SPLIT || isLoading) && (
+                  <div className={`flex-1 relative flex flex-col min-h-0 bg-slate-950 ${viewMode === ViewMode.SPLIT && !isLoading ? 'w-1/2' : 'w-full'}`}>
+                    <CodeViewer code={displayCode} isStreaming={isLoading} />
+                  </div>
+                )}
               </div>
             </div>
           </div>

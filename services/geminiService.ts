@@ -13,10 +13,10 @@ if (!apiKey) {
 const baseUrl = 'https://api.mulerun.com';
 
 // Gemini 3 Pro model ID
-const modelId = 'gemini-3-pro-preview'; 
+const modelId = 'gemini-3-pro-preview';
 
 export const generateFrontendCode = async (
-  prompt: string, 
+  prompt: string,
   onChunk?: (text: string) => void
 ): Promise<GeneratedCodeResponse> => {
   try {
@@ -45,12 +45,9 @@ export const generateFrontendCode = async (
       7. **RESTART UI:** When the game ends, show an overlay with a "Restart" button that re-initializes the game state.
       
       OUTPUT FORMAT:
-      You MUST respond with a raw JSON object (no markdown code blocks) with the following structure:
-      {
-        "code": "...", // The complete HTML string
-        "explanation": "...", // Brief explanation
-        "language": "html"
-      }
+      1. Return the raw HTML code directly. Do NOT wrap it in markdown code blocks. Do NOT return JSON.
+      2. After the HTML code, print exactly this separator: "<!-- GEMINI_EXPLANATION_SEPARATOR -->"
+      3. After the separator, provide a brief explanation of the code and design choices.
     `;
 
     const messages = [
@@ -60,7 +57,7 @@ export const generateFrontendCode = async (
 
     // For non-streaming requests, we should increase timeout or handle long polling if needed, 
     // but standard fetch awaits response.
-    
+
     // Validate API key
     if (!apiKey) {
       throw new Error('VITE_MULERUN_API_KEY is not configured. Please set it in Vercel environment variables.');
@@ -79,19 +76,19 @@ export const generateFrontendCode = async (
         model: modelId,
         messages: messages,
         stream: true, // Enable streaming for real-time code display
-        response_format: { type: "json_object" }
+        // response_format: { type: "json_object" } // Removed to allow raw text streaming
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("[GeminiService] API Error Body:", errorText);
-      
+
       // Handle specific Vercel timeout (504 Gateway Timeout)
       if (response.status === 504) {
         throw new Error("The request timed out. Generating complex code might take longer than Vercel's limit (10s-60s). Try a simpler prompt or try again.");
       }
-      
+
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
@@ -108,7 +105,7 @@ export const generateFrontendCode = async (
     // Stream the response
     while (true) {
       const { done, value } = await reader.read();
-      
+
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
@@ -118,7 +115,7 @@ export const generateFrontendCode = async (
       for (const line of lines) {
         // Skip empty lines
         if (!line.trim()) continue;
-        
+
         if (line.startsWith('data: ')) {
           const data = line.slice(6).trim();
           if (data === '[DONE]') {
@@ -129,7 +126,7 @@ export const generateFrontendCode = async (
           try {
             const parsed = JSON.parse(data);
             const delta = parsed.choices?.[0]?.delta?.content || '';
-            
+
             if (delta) {
               fullContent += delta;
               // Call onChunk callback for each chunk to enable real-time display
@@ -171,39 +168,27 @@ export const generateFrontendCode = async (
     }
 
     console.log('[GeminiService] Stream completed. Total length:', fullContent.length);
-    
+
     if (!fullContent) {
       throw new Error("Model returned empty content.");
     }
 
     // Final cleanup and parsing
-    let jsonString = fullContent.trim();
+    let fullText = fullContent.trim();
     // Remove markdown blocks if they still appear despite instructions
-    jsonString = jsonString.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
-    
-    try {
-      const parsed: GeneratedCodeResponse = JSON.parse(jsonString);
-      return parsed;
-    } catch (parseError) {
-      console.error("JSON Parse Error:", parseError);
-      console.log("Raw Text:", fullContent);
-      
-      // Fallback: try to construct a valid response if parsing fails but we have text
-      // Sometimes the model might return just the HTML code if it ignored the JSON instruction
-      if (fullContent.trim().startsWith("<html") || fullContent.trim().startsWith("<!DOCTYPE")) {
-         return {
-            code: fullContent,
-            explanation: "Generated code (raw output)",
-            language: "html"
-         };
-      }
+    fullText = fullText.replace(/^```html\s*/, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
 
-      return {
-        code: fullContent,
-        explanation: "Generated code (parsing failed)",
-        language: "html"
-      };
-    }
+    const separator = "<!-- GEMINI_EXPLANATION_SEPARATOR -->";
+    const parts = fullText.split(separator);
+
+    const code = parts[0].trim();
+    const explanation = parts.length > 1 ? parts[1].trim() : "No explanation provided.";
+
+    return {
+      code,
+      explanation,
+      language: "html"
+    };
 
   } catch (error) {
     console.error("Gemini API Error:", error);
